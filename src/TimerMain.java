@@ -1,20 +1,12 @@
-import java.sql.SQLException;
 import java.util.Timer;
 
 public class TimerMain  {
 
-	public static void main(String[] args) {		
+	public static void main(String[] args) {
 		
-		TimerDB tdb = new TimerDB();
 		
-		try{						
-			tdb.createTables();
-			//tdb.deleteRecordBeforeTwomonths();
-			
-		} catch(SQLException e){
-			e.printStackTrace();
-		}
-		
+		TimerLib obj = new TimerLib();
+		obj.createTimerFileFolder();
 		
 		final TimerWindow TW = new TimerWindow();
 		TW.init();

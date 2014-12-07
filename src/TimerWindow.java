@@ -4,12 +4,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.net.URL;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.awt.event.WindowEvent;import java.net.URL;
+
 import java.util.Calendar;
 import java.util.TimerTask;
 
@@ -35,9 +31,7 @@ public class TimerWindow extends TimerTask implements ActionListener {
 	JButton btnPause,btnResume,btnSetMaxLog;
 	JMenuBar menuBar;
 	JMenu menu;
-	JMenuItem menuitem;
-	JSpinner spinner;
-	SpinnerNumberModel spinNumber;
+	JMenuItem menuitem;	
 	TimerLib objTL;
 	Calendar objLogout ;
 	Calendar objTodayLog ;	
@@ -89,10 +83,7 @@ public class TimerWindow extends TimerTask implements ActionListener {
 		objTodayLog.set(Calendar.SECOND,0);
 		
 		menuBar = new JMenuBar();
-		menu = new JMenu("Pause-Resume Log");		
-		
-		spinNumber = new SpinnerNumberModel(log_hours, 1, 24, 1);
-		spinner = new JSpinner(spinNumber);
+		menu = new JMenu("Pause-Resume Log");	
 		
 		//set logout time
 		objLogout.add(Calendar.HOUR_OF_DAY,log_hours);	
@@ -132,39 +123,7 @@ public class TimerWindow extends TimerTask implements ActionListener {
 		
 		
 		/* set library object */
-		createSupportClassObjects();
-		
-		
-		/* insert first log time and date */		
-		 String sql;
-		 
-		 sql = "INSERT INTO TIMERLOG(first_login_date_time,week_of_year,day_of_week,logout_time) VALUES("
-		 		+ "'" + objTL.getTimeAsString(objFirstLogin,"hh:mm:ss") + "'"
-		 		+ ","
-		 		+  objTL.getLogWeekDetails("year")
-		 		+ ","
-		 		+ objTL.getLogWeekDetails("day")
-		 		+ ","
-		 		+"'00:00:00'"
-		 		+ ")";		
-		 
-		 try {
-			tdb.setTableDetails(sql);
-		} catch (SQLException e3) {
-			// TODO Auto-generated catch block
-			//e3.printStackTrace();
-		}
-		 
-		 /* set current week id
-		  * NOTE:save table primary key value
-		  *  
-		  *  */
-		try {
-			log_table_current_week_id = tdb.getCurrentWeekRecordId();
-		} catch (Exception e2) {
-			// TODO Auto-generated catch block
-			//e2.printStackTrace();
-		}		
+		createSupportClassObjects();	
 		
 		menuBar.add(menu);
 		frm.setJMenuBar(menuBar);
@@ -187,7 +146,11 @@ public class TimerWindow extends TimerTask implements ActionListener {
 			}
 			
 			public void windowClosing(WindowEvent e) {
-				recordLastLogin();				
+				
+				if(JOptionPane.showConfirmDialog (null, "Are you sure you want to close timer?","Timer Confirm",JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION){
+					recordLastLogin();
+					System.exit(0);				
+				}
 			}
 
 						
@@ -205,8 +168,11 @@ public class TimerWindow extends TimerTask implements ActionListener {
 			}
 		});		
 		
+		frm.setTitle("Welcome " + objTL.getSystemName().toUpperCase());		
 		frm.pack();
 		frm.setAlwaysOnTop(true);
+		frm.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		frm.setResizable(false);
 		frm.setVisible(true);
 
 	}
@@ -224,7 +190,7 @@ public class TimerWindow extends TimerTask implements ActionListener {
 		
 		/* configure grid layout to jframe */
 		frm.getContentPane().setLayout(gl);
-		frm.setMinimumSize(new Dimension(500,200));
+		frm.setMinimumSize(new Dimension(300,200));
 		
 		/* add items to frame */		
 		addComponent(lbFirstLogin,lbFirstLoginTime,frm.getContentPane());
@@ -238,14 +204,12 @@ public class TimerWindow extends TimerTask implements ActionListener {
 		
 		addComponent(lbWeekLog,lbWeekLogTime,frm.getContentPane());
 		try {
-			week_time_mills = tdb.getWeekLog();
+			week_time_mills = objTL.getWeekLog();
 			lbWeekLogTime.setText(objTL.prepareWeekLogFromMills(week_time_mills));
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-		}
+			
+		}		
 		
-		//addComponent(spinner,btnSetMaxLog,frm.getContentPane());
 		addComponent(btnPause,btnResume,frm.getContentPane());	
 
 	}
@@ -264,43 +228,8 @@ public class TimerWindow extends TimerTask implements ActionListener {
 						
 		}else if(curr_button.contains("Resume")){
 			resumeTimer();
-		}else if(curr_button.contains("Set Maximum Log hours")){
-			int max_log = (int) spinner.getValue();
-			objLogout = (Calendar) objFirstLogin.clone();
-			objLogout.add(Calendar.HOUR_OF_DAY,max_log);
-			lbLogoutTime.setText(objTL.getTimeAsString(objLogout, "hh:mm:ss a"));
-			log_hours = max_log;
 		}
-	}
-	
-	public void addMenuItem() throws SQLException{
-		 Statement stmt = null;
-		 ResultSet rs = null;
-		 
-		 try{
-			 
-			 menu.removeAll();
-			 
-			 TimerDB.c =  DriverManager.getConnection(tdb.connector); 
-			 stmt = TimerDB.c.createStatement();
-			 
-			 rs = stmt.executeQuery( "SELECT pause_time,resume_time FROM PAUSERESUMELOG WHERE timer_log_id = " + log_table_current_week_id );
-			 
-			 while( rs.next()){
-				menuitem = new JMenuItem(rs.getString("pause_time") + "-" + rs.getString("resume_time"));
-				menu.add(menuitem);				
-			 }
-			 
-			 rs.close();
-			
-			 
-		 } catch( Exception e){
-		 } finally{
-			 stmt.close();
-			 TimerDB.c.close();
-		 }
-
-	}
+	}	
 	
 	public void pauseTimer(){
 		stop_timer = true;
@@ -312,19 +241,13 @@ public class TimerWindow extends TimerTask implements ActionListener {
 	
 	public void resumeTimer(){
 		Calendar objCurrentTime = null;
-		String sql, pause_time, resume_time;
+		String pause_time, resume_time;
 		
-		stop_timer = false;
+		stop_timer = false;		
 		
-		//subtract today's log pause time
-		objTodayLog.add(Calendar.SECOND,-1 * (int)time_stop_secs);
-		
-		//add logout pause time
+		//add pause time to logout
 		objLogout.add(Calendar.SECOND, (int)time_stop_secs);
 		lbLogoutTime.setText(objTL.getTimeAsString(objLogout, "hh:mm:ss a"));
-		
-		//subtract from week log
-		week_time_mills -=  (int)time_stop_secs * time_millis;
 		
 		/* set resume time */
 		objCurrentTime = Calendar.getInstance();
@@ -334,27 +257,9 @@ public class TimerWindow extends TimerTask implements ActionListener {
 		objCurrentTime.add(Calendar.SECOND,-1*(int)time_stop_secs);
 		pause_time = objTL.getTimeAsString(objCurrentTime, "hh:mm:ss a");
 		
-		sql = "INSERT INTO PAUSERESUMELOG(timer_log_id,pause_time,resume_time) VALUES("
-				 + log_table_current_week_id 
-				 + ","
-				 + "'" + pause_time + "'"
-				 +","
-				 + "'" + resume_time + "'"
-				 + ")";	
 		
-		try {
-			tdb.setTableDetails(sql);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-		}
-		
-		try {
-			addMenuItem();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-		}	
+		menuitem = new JMenuItem(pause_time + "-" + resume_time);
+		menu.add(menuitem);			
 		
 		btnPause.setEnabled(true);
 		btnResume.setEnabled(false);
@@ -362,22 +267,9 @@ public class TimerWindow extends TimerTask implements ActionListener {
 	}
 	
 	public void recordLastLogin(){
-		String sql;
-		
-		Calendar objCurrentInstance = Calendar.getInstance();
-		 
-		sql = "UPDATE TIMERLOG SET logout_time = " 
-				+ "'" + objTL.getTimeAsString(objCurrentInstance, "hh:mm:ss") + "'"
-				+ "WHERE ID = "
-				+ log_table_current_week_id;
-		 				
-		 
-		 try {
-			tdb.setTableDetails(sql);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-		}
+		String FilePath = System.getenv("SystemDrive") + "//" + "OfficeTimerLog" + "//" + "WeekLog_" + objTL.getLogWeekDetails("year") + ".txt";
+				
+		objTL.writeToFile(FilePath, String.valueOf(week_time_mills));
 		 
 	}	
 	
